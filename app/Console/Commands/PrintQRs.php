@@ -72,6 +72,7 @@ class PrintQRs extends Command
         });
         
         // Update Pack Status
+        if(count($pack_numbers) > 0)
         try {
 
             $headers = [
