@@ -24,25 +24,21 @@ class PrintQRs extends Command
     protected $description = 'Print Qrs and update pack response';
 
     protected $token = '';
-    public $headers = [];
+    
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        // Warehosue APIs headers
-        $this->headers = [
-            'Accept' => 'application/json',
-            'Accept-Language' => 'application/json',
-            'tool_id' => env('WAREHOUSE_CREDS_TOOL_ID'),
-            'tenant-code' => env('WAREHOUSE_CREDS_TENANT_CODE')
-        ];
+        ini_set('memory_limit', '256M');
+        
 
         // Login
         $login = $this->warehouseLogin();
 
         if (count($login) > 0) {
-            $this->token = $login["token"];
+            $this->token = $login["token"]; 
+            
             // Print QRs
             $this->printQRs();
         }
@@ -65,17 +61,33 @@ class PrintQRs extends Command
                     'Accept' => 'application/json',
                     'Content-Type' => 'application/x-www-form-urlencoded',
                 ];
-                $response = Http::withHeaders($headers)->post(env('PYTHON_SCRIPT_URL'), $printer_req_data);
-
-                dd($response->body());
-                $pack_numbers[] = $qr->pack_number;
+                $response = Http::withHeaders($headers)
+                ->withBody(http_build_query($printer_req_data), 'application/x-www-form-urlencoded')->post(env('PYTHON_SCRIPT_URL'));
+                $response_data = json_decode($response, true);
+                if(!$response_data["connection_error"]){
+                    $pack_numbers[] = $qr->pack_number;
+                }
+                
             }
         });
-
+        
         // Update Pack Status
         try {
-            $response = Http::withHeaders($this->headers)->post(env("WAREHOUSE_CREDS_LOGIN_URL") . '/api/v1/warehouse-tool/production_orders/pack_status/update', $pack_numbers);
+
+            $headers = [
+                'Accept' => 'application/json',
+                'Accept-Language' => 'application/json',
+                'tool_id' => env('WAREHOUSE_CREDS_TOOL_ID'),
+                'tenant-code' => env('WAREHOUSE_CREDS_TENANT_CODE'),
+                'Authorization' => "Bearer ".$this->token
+            ];
+            
+            $response = Http::withOptions([
+                'verify' => false,
+            ])->withHeaders($headers)->post(env("WAREHOUSE_CREDS_URL") . '/warehouse-tool/production_orders/pack_status/update', ["pack_numbers" => $pack_numbers]);
+            
             $response_data = json_decode($response->body(), true);
+         
             if($response_data['success']){
                 GeneratedQR::query()->delete();
             }
@@ -89,17 +101,25 @@ class PrintQRs extends Command
     public function warehouseLogin()
     {
         try {
+            $headers = [
+                'Accept' => 'application/json',
+                'Accept-Language' => 'application/json',
+                'tool_id' => env('WAREHOUSE_CREDS_TOOL_ID'),
+                'tenant-code' => env('WAREHOUSE_CREDS_TENANT_CODE')
+            ];
             $data = [
                 'email' => env('WAREHOUSE_CREDS_EMAIL'),
                 'password' => env('WAREHOUSE_CREDS_PASSWORD'),
                 'tenant-code' => env('WAREHOUSE_CREDS_TENANT_CODE'),
             ];
             
-            $response = Http::withHeaders($this->headers)->post(env("WAREHOUSE_CREDS_LOGIN_URL") . '/api/v1/main-tool/auth/login', $data);
+            $response = Http::withOptions([
+                'verify' => false,
+            ])->withHeaders($headers)->post(env("WAREHOUSE_CREDS_URL") . '/main-tool/auth/login', $data);
             $response_data = json_decode($response->body(), true);
             return $response_data['data'];
         } catch (\Exception $e) {
-            return [];
+            return [$e->getMessage()];
         }
     }
 }
