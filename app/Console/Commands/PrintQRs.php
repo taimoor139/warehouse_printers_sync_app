@@ -48,29 +48,30 @@ class PrintQRs extends Command
     // Print QRs Aling with status update
     public function printQRs()
     {
+        $production_numbers = [];
         $pack_numbers = [];
-        GeneratedQR::chunk(50, function ($qrs) use(&$pack_numbers) {
+        GeneratedQR::chunk(50, function ($qrs) use(&$pack_numbers, &$production_numbers) {
             foreach ($qrs as $qr) {
-                $printer_req_data = [];
-                $printer_req_data['printer_ip'] = $qr->printer_ip;
-                $printer_req_data['printer_port'] = $qr->printer_port;
-                $printer_req_data['value'] = $qr->pack_number . 'B:' . $qr->batch_number . 'RS' . $qr->price . 'MFG:' . Carbon::parse($qr->mfg_date) . 'BB:' . Carbon::parse($qr->expiry_date);
+                // $printer_req_data = [];
+                // $printer_req_data['printer_ip'] = $qr->printer_ip;
+                // $printer_req_data['printer_port'] = $qr->printer_port;
+                // $printer_req_data['value'] = $qr->pack_number . 'B:' . $qr->batch_number . 'RS' . $qr->price . 'MFG:' . Carbon::parse($qr->mfg_date) . 'BB:' . Carbon::parse($qr->expiry_date);
 
-                // Post Request for Python Printing Script
-                $headers = [
-                    'Accept' => 'application/json',
-                    'Content-Type' => 'application/x-www-form-urlencoded',
-                ];
-                $response = Http::withHeaders($headers)
-                ->withBody(http_build_query($printer_req_data), 'application/x-www-form-urlencoded')->post(env('PYTHON_SCRIPT_URL'));
-                $response_data = json_decode($response, true);
-                if(!$response_data["connection_error"]){
+                // // Post Request for Python Printing Script
+                // $headers = [
+                //     'Accept' => 'application/json',
+                //     'Content-Type' => 'application/x-www-form-urlencoded',
+                // ];
+                // $response = Http::withHeaders($headers)
+                // ->withBody(http_build_query($printer_req_data), 'application/x-www-form-urlencoded')->post(env('PYTHON_SCRIPT_URL'));
+                // $response_data = json_decode($response, true);
+                // if(!$response_data["connection_error"]){
                     $pack_numbers[] = $qr->pack_number;
-                }
+                    $production_numbers[] = $qr->production_number;
+                // }
                 
             }
-        });
-        
+        }); 
         // Update Pack Status
         if(count($pack_numbers) > 0)
         try {
@@ -82,12 +83,13 @@ class PrintQRs extends Command
                 'tenant-code' => env('WAREHOUSE_CREDS_TENANT_CODE'),
                 'Authorization' => "Bearer ".$this->token
             ];
-            
+  
             $response = Http::withOptions([
                 'verify' => false,
-            ])->withHeaders($headers)->post(env("WAREHOUSE_CREDS_URL") . '/warehouse-tool/production_orders/pack_status/update', ["pack_numbers" => $pack_numbers]);
+            ])->withHeaders($headers)->post(env("WAREHOUSE_CREDS_URL") . '/warehouse-tool/production_orders/pack_status/update', ["pack_numbers" => $pack_numbers, 'production_numbers' => array_unique($production_numbers)]);
             
             $response_data = json_decode($response->body(), true);
+            
          
             if($response_data['success']){
                 GeneratedQR::query()->delete();
