@@ -53,29 +53,41 @@ class PrintQRs extends Command
         GeneratedQR::chunk(50, function ($qrs) use(&$pack_numbers, &$production_numbers) {
             foreach ($qrs as $qr) {
                 $printer_req_data = [];
+                $this->line($printer_req_data);
                 $printer_req_data['printer_ip'] = $qr->printer_ip;
                 $printer_req_data['printer_port'] = $qr->printer_port;
-                $printer_req_data['value'] = $qr->pack_number . 'B:' . $qr->batch_number . 'RS' . $qr->price . 'MFG:' . Carbon::parse($qr->mfg_date) . 'BB:' . Carbon::parse($qr->expiry_date);
+                // $printer_req_data['value'] = $qr->pack_number . 'B:' . $qr->batch_number . 'RS' . $qr->price . 'MFG:' . Carbon::parse($qr->mfg_date) . 'BB:' . Carbon::parse($qr->expiry_date);
+                // $printer_req_data['action'] = "start";
+                // $printer_req_data['add_value'] = "";
+                $printer_req_data['printer_counter'] = "";
 
                 // Post Request for Python Printing Script
                 $headers = [
-                    'Accept' => 'application/json',
-                    'Content-Type' => 'application/x-www-form-urlencoded',
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json'
                 ];
+                
                 $response = Http::withHeaders($headers)
-                ->withBody(http_build_query($printer_req_data), 'application/x-www-form-urlencoded')->post(env('PYTHON_SCRIPT_URL'));
-                $response_data = json_decode($response, true);
-                if(!$response_data["connection_error"]){
+                    ->post(env('PYTHON_SCRIPT_URL'),  $printer_req_data);
+                
+                echo( $response->body());
+                $response_data = json_decode($response->body(), true);
+               
+                $this->line($response_data["success_message"]);
+                if($response_data["success_message"]){
                     $pack_numbers[] = $qr->pack_number;
                     $production_numbers[] = $qr->production_number;
                 }
+
+                
+                $this->line($printer_req_data);
                 
             }
         }); 
+        
         // Update Pack Status
         if(count($pack_numbers) > 0)
         try {
-
             $headers = [
                 'Accept' => 'application/json',
                 'Accept-Language' => 'application/json',
@@ -89,13 +101,14 @@ class PrintQRs extends Command
             ])->withHeaders($headers)->post(env("WAREHOUSE_CREDS_URL") . '/warehouse-tool/production_orders/pack_status/update', ["pack_numbers" => $pack_numbers, 'production_numbers' => array_unique($production_numbers)]);
             
             $response_data = json_decode($response->body(), true);
-            
          
             if($response_data['success']){
                 GeneratedQR::query()->delete();
             }
+            $this->line( $response_data['message'] );
             return $response_data['data'];
         } catch (\Exception $e) {
+            $this->line($e->getMessage());
             return $e->getMessage();
         }
     }
