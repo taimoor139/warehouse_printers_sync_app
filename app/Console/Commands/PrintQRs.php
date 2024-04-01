@@ -56,7 +56,8 @@ class PrintQRs extends Command
                 $printer_req_data = [];
                 $value = $this->genenrateValueString($qr->pack_number, $qr->batch_number , $qr->price, $qr->mfg_date, $qr->expiry_date);
                 $response = $this->printerValues($qr->printer_ip, $qr->printer_port, $value, $printer_count);
-                if ($response) {
+                if ($response['status']) {
+                    $printer_count = $response['current_counter'];
                     $pack_numbers[] = $qr->pack_number;
                     $production_numbers[] = $qr->production_number;
                 }
@@ -168,7 +169,7 @@ class PrintQRs extends Command
     public function printerValues($printer_ip, $printer_port, $value, $printer_count)
     {
         $printer_counter = $this->printerCounterCheck($printer_ip, $printer_port, $printer_count);
-        if ($printer_counter) {
+        if ($printer_counter['status']) {
             $printer_req_data['printer_ip'] = $printer_ip;
             $printer_req_data['printer_port'] = $printer_port;
             $printer_req_data['value'] = $value;
@@ -177,9 +178,9 @@ class PrintQRs extends Command
             $response_data = $this->printerConfiguration($printer_req_data);
 
             if ($response_data["success_message"]) {
-                return true;
+                return ['current_counter' => $printer_counter['current_counter'], 'status' => true];;
             } else {
-                return false;
+                return ['current_counter' => $printer_counter['current_counter'], 'status' => true];;
             }
         } else {
             sleep(2);
