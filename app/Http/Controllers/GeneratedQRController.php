@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\GeneratedQR;
-use Illuminate\Http\Request;
+use App\Console\Commands\PrintQRs;
+use Illuminate\Support\Facades\Artisan;
 
 class GeneratedQRController extends Controller
 {
     public function printQRs(){
-        $generated_qrs = GeneratedQR::chunk(50, function($qrs){
-            foreach($qrs as $qr){
-                
-            }
-        });
+        try {
+            return Artisan::call(PrintQRs::class);
+        } catch(\Exception $e){
+            return $e->getMessage();
+        }
     }
 }
