@@ -53,10 +53,11 @@ class PrintQRs extends Command
         $printer_count = 0;
         GeneratedQR::chunk(50, function ($qrs) use (&$pack_numbers, &$production_numbers, &$printer_count) {
             foreach ($qrs as $qr) {
+                $this->line($printer_count);
                 $value = $this->genenrateValueString($qr->pack_number, $qr->batch_number , $qr->price, $qr->mfg_date, $qr->expiry_date);
                 $response = $this->printerValues($qr->printer_ip, $qr->printer_port, $value, $printer_count);
                 $this->line($value);
-                $this->line($response);
+                dump($response);
                 if ($response['status']) {
                     $printer_count = $response['current_counter'];
                     $pack_numbers[] = $qr->pack_number;
@@ -170,6 +171,7 @@ class PrintQRs extends Command
     public function printerValues($printer_ip, $printer_port, $value, $printer_count)
     {
         $printer_counter = $this->printerCounterCheck($printer_ip, $printer_port, $printer_count);
+        dump($printer_counter);
         if ($printer_counter['status']) {
             $printer_req_data['printer_ip'] = $printer_ip;
             $printer_req_data['printer_port'] = $printer_port;
@@ -179,13 +181,13 @@ class PrintQRs extends Command
             $response_data = $this->printerConfiguration($printer_req_data);
 
             if ($response_data["success_message"]) {
-                return ['current_counter' => $printer_counter['current_counter'], 'status' => true];;
+                return ['current_counter' => $printer_counter['current_counter'], 'status' => true];
             } else {
-                return ['current_counter' => $printer_counter['current_counter'], 'status' => true];;
+                return ['current_counter' => $printer_counter['current_counter'], 'status' => false];
             }
         } else {
-            sleep(2);
-            $this->printerValues($printer_ip, $printer_port, $value, $printer_count);
+            sleep(3);
+            return $this->printerValues($printer_ip, $printer_port, $value, $printer_count);
         }
     }
 
