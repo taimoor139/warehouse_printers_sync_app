@@ -56,10 +56,10 @@ class PrintQRs extends Command
                 $this->line($printer_req_data);
                 $printer_req_data['printer_ip'] = $qr->printer_ip;
                 $printer_req_data['printer_port'] = $qr->printer_port;
-                // $printer_req_data['value'] = $qr->pack_number . 'B:' . $qr->batch_number . 'RS' . $qr->price . 'MFG:' . Carbon::parse($qr->mfg_date) . 'BB:' . Carbon::parse($qr->expiry_date);
+                $printer_req_data['value'] = $qr->pack_number . 'B:' . $qr->batch_number . 'RS' . $qr->price . 'MFG:' . Carbon::parse($qr->mfg_date) . 'BB:' . Carbon::parse($qr->expiry_date);
                 // $printer_req_data['action'] = "start";
                 // $printer_req_data['add_value'] = "";
-                $printer_req_data['printer_counter'] = "";
+                $printer_req_data['product_count'] = "";
 
                 // Post Request for Python Printing Script
                 $headers = [
