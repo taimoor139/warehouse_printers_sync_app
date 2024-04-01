@@ -53,15 +53,16 @@ class PrintQRs extends Command
         $printer_count = 0;
         GeneratedQR::chunk(50, function ($qrs) use (&$pack_numbers, &$production_numbers, &$printer_count) {
             foreach ($qrs as $qr) {
-                $printer_req_data = [];
                 $value = $this->genenrateValueString($qr->pack_number, $qr->batch_number , $qr->price, $qr->mfg_date, $qr->expiry_date);
                 $response = $this->printerValues($qr->printer_ip, $qr->printer_port, $value, $printer_count);
+                $this->line($value);
+                $this->line($response);
                 if ($response['status']) {
                     $printer_count = $response['current_counter'];
                     $pack_numbers[] = $qr->pack_number;
                     $production_numbers[] = $qr->production_number;
                 }
-                $this->line($printer_req_data);
+                
             }
         });
 
