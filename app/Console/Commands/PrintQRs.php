@@ -53,8 +53,9 @@ class PrintQRs extends Command
         $printer_count = 0;
         GeneratedQR::chunk(50, function ($qrs) use (&$pack_numbers, &$production_numbers, &$printer_count) {
             foreach ($qrs as $qr) {
+                dump($qr->pack_number);
                 $this->line($printer_count);
-                $value = $this->genenrateValueString($qr->pack_number, $qr->batch_number , $qr->price, $qr->mfg_date, $qr->expiry_date);
+                $value = $this->genenrateValueString($qr->pack_number, $qr->batch_number , $qr->price , $qr->mfg_date, $qr->expiry_date);
                 $response = $this->printerValues($qr->printer_ip, $qr->printer_port, $value, $printer_count);
                 $this->line($value);
                 dump($response);
@@ -186,12 +187,16 @@ class PrintQRs extends Command
                 return ['current_counter' => $printer_counter['current_counter'], 'status' => false];
             }
         } else {
-            sleep(3);
+            sleep(1);
             return $this->printerValues($printer_ip, $printer_port, $value, $printer_count);
         }
     }
 
     function genenrateValueString($pack_number, $batch_number, $price, $mfg_date, $expiry_date){
-        return $pack_number . 'B:' . $batch_number . 'RS' . $price . 'MFG:' . Carbon::parse($mfg_date) . 'BB:' . Carbon::parse($expiry_date);
+        $price =  $price > 0 ? $price : '0000';
+        $batch_number = str_pad($batch_number, 6, '0', STR_PAD_LEFT); 
+        $this->line($batch_number);
+
+        return $pack_number . '' . $batch_number. Carbon::now()->toTimeString() . 'RS:' . $price . 'MFG:' . Carbon::parse($mfg_date)->format('Y-m-d') . 'BB:' . Carbon::parse($expiry_date)->format('Y-m-d');
     }
 }
