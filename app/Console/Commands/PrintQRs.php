@@ -30,7 +30,8 @@ class PrintQRs extends Command
      */
     public function handle()
     {
-        ini_set('memory_limit', '256M');
+        ini_set('memory_limit', -1);
+        ini_set('max_execution_time', '4621353235231');
 
 
         // Login
@@ -193,7 +194,7 @@ class PrintQRs extends Command
 
     function genenrateValueString($pack_number, $batch_number, $price, $mfg_date, $expiry_date)
     {
-        $price =  $price > 0 ? 'RS:' . $price : '******';
+        $price =  $price > 0 ? 'RS:' . $price : '*******';
         $batch_number = str_pad($batch_number, 6, '0', STR_PAD_LEFT);
         $this->line($batch_number);
 
