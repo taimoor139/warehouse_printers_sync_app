@@ -52,6 +52,7 @@ class PrintQRs extends Command
         $production_numbers = [];
         $pack_numbers = [];
         $printer_count = 0;
+        $already_trashed_entries;
         GeneratedQR::chunk(50, function ($qrs) use (&$pack_numbers, &$production_numbers, &$printer_count) {
             foreach ($qrs as $qr) {
                 dump($qr->pack_number);
@@ -64,6 +65,8 @@ class PrintQRs extends Command
                     $printer_count = $response['current_counter'];
                     $pack_numbers[] = $qr->pack_number;
                     $production_numbers[] = $qr->production_number;
+
+                    $qr->delete();
                 }
             }
         });
