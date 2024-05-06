@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\GeneratedQR;
+use App\Models\PrintCommandStatus;
 use Illuminate\Console\Command;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -32,106 +33,127 @@ class PrintQRs extends Command
     {
         ini_set('memory_limit', -1);
         ini_set('max_execution_time', '4621353235231');
+        ini_set('xdebug.max_nesting_level', 4621353235231);
 
 
         // Login
-        $login = $this->warehouseLogin();
+        // $login = $this->warehouseLogin();
 
-        if (count($login) > 0) {
-            $this->token = $login["token"];
+        // if (count($login) > 0) {
+        //     $this->token = $login["token"];
 
-            // Print QRs
-            $this->printQRs();
-        }
+        // Print QRs
+        $this->printQRs();
+        // }
     }
 
 
     // Print QRs Aling with status update
     public function printQRs()
     {
-        $production_numbers = [];
-        $pack_numbers = [];
         $printer_count = 0;
-        $already_trashed_entries;
-        GeneratedQR::chunk(50, function ($qrs) use (&$pack_numbers, &$production_numbers, &$printer_count) {
-            foreach ($qrs as $qr) {
-                dump($qr->pack_number);
+        while (true) {
+            $process_Status = PrintCommandStatus::where('status', PrintCommandStatus::STARTED)->first();
+            if ($process_Status) {
+                $print_qr = GeneratedQR::first();
                 $this->line($printer_count);
-                $value = $this->genenrateValueString($qr->pack_number, $qr->batch_number, $qr->price, $qr->mfg_date, $qr->expiry_date);
-                $response = $this->printerValues($qr->printer_ip, $qr->printer_port, $value, $printer_count);
-                $this->line($value);
-                dump($response);
+                $value = $this->genenrateValueString($print_qr->pack_number, $print_qr->batch_number, $print_qr->price, $print_qr->mfg_date, $print_qr->expiry_date);
+                $response = $this->printerValues($print_qr->printer_ip, $print_qr->printer_port, $value, $printer_count);
+
                 if ($response['status']) {
                     $printer_count = $response['current_counter'];
-                    $pack_numbers[] = $qr->pack_number;
-                    $production_numbers[] = $qr->production_number;
+                    $pack_numbers[] = $print_qr->pack_number;
+                    $production_numbers[] = $print_qr->production_number;
 
-                    $qr->delete();
+                    $print_qr->delete();
                 }
+            } else {
+                continue;
             }
-        });
+        }
+        // $production_numbers = [];
+        // $pack_numbers = [];
+        // $printer_count = 0;
+        // GeneratedQR::chunk(50, function ($qrs) use (&$pack_numbers, &$production_numbers, &$printer_count) {
+        //     foreach ($qrs as $qr) {
+        //         dump($qr->pack_number);
+        //         // $this->line($printer_count);
+        //         // $value = $this->genenrateValueString($qr->pack_number, $qr->batch_number, $qr->price, $qr->mfg_date, $qr->expiry_date);
+        //         // $response = $this->printerValues($qr->printer_ip, $qr->printer_port, $value, $printer_count);
+        //         // $this->line($value);
+        //         // dump($response);
+        //         // if ($response['status']) {
+        //         //     $printer_count = $response['current_counter'];
+        //         //     $pack_numbers[] = $qr->pack_number;
+        //         //     $production_numbers[] = $qr->production_number;
+
+        //         //     $qr->delete();
+        //         // }
+        //     }
+        // });
 
         // Update Pack Status
-        if (count($pack_numbers) > 0)
-            try {
-                $response_data = $this->warehouseConfiguration($pack_numbers, $production_numbers);
+        // if (count($pack_numbers) > 0) {
+        //     try {
+        //         $response_data = $this->warehouseConfiguration($pack_numbers, $production_numbers);
 
-                if ($response_data['success']) {
-                    GeneratedQR::query()->delete();
-                }
-                $this->line($response_data['message']);
-                return 'Data printed successfully';
-            } catch (\Exception $e) {
-                $this->line($e->getMessage());
-                return $e->getMessage();
-            }
+        //         if ($response_data['success']) {
+        //             GeneratedQR::query()->delete();
+        //         }
+        //         $this->line($response_data['message']);
+        //         return 'Data printed successfully';
+        //     } catch (\Exception $e) {
+        //         $this->line($e->getMessage());
+        //         return $e->getMessage();
+        //     }
+        // }
     }
 
     // Login API for warehouse system
-    public function warehouseLogin()
-    {
-        try {
-            $headers = [
-                'Accept' => 'application/json',
-                'Accept-Language' => 'application/json',
-                'tool_id' => env('WAREHOUSE_CREDS_TOOL_ID'),
-                'tenant-code' => env('WAREHOUSE_CREDS_TENANT_CODE')
-            ];
-            $data = [
-                'email' => env('WAREHOUSE_CREDS_EMAIL'),
-                'password' => env('WAREHOUSE_CREDS_PASSWORD'),
-                'tenant-code' => env('WAREHOUSE_CREDS_TENANT_CODE'),
-            ];
+    // public function warehouseLogin()
+    // {
+    //     try {
+    //         $headers = [
+    //             'Accept' => 'application/json',
+    //             'Accept-Language' => 'application/json',
+    //             'tool_id' => env('WAREHOUSE_CREDS_TOOL_ID'),
+    //             'tenant-code' => env('WAREHOUSE_CREDS_TENANT_CODE')
+    //         ];
+    //         $data = [
+    //             'email' => env('WAREHOUSE_CREDS_EMAIL'),
+    //             'password' => env('WAREHOUSE_CREDS_PASSWORD'),
+    //             'tenant-code' => env('WAREHOUSE_CREDS_TENANT_CODE'),
+    //         ];
 
-            $response = Http::withOptions([
-                'verify' => false,
-            ])->withHeaders($headers)->post(env("WAREHOUSE_CREDS_URL") . '/main-tool/auth/login', $data);
-            $response_data = json_decode($response->body(), true);
-            return $response_data['data'];
-        } catch (\Exception $e) {
-            return [$e->getMessage()];
-        }
-    }
+    //         $response = Http::withOptions([
+    //             'verify' => false,
+    //         ])->withHeaders($headers)->post(env("WAREHOUSE_CREDS_URL") . '/main-tool/auth/login', $data);
+    //         $response_data = json_decode($response->body(), true);
+    //         return $response_data['data'];
+    //     } catch (\Exception $e) {
+    //         return [$e->getMessage()];
+    //     }
+    // }
 
     // Warehouse call back api configuration
-    public function warehouseConfiguration($pack_numbers, $production_numbers)
-    {
-        $headers = [
-            'Accept' => 'application/json',
-            'Accept-Language' => 'application/json',
-            'tool_id' => env('WAREHOUSE_CREDS_TOOL_ID'),
-            'tenant-code' => env('WAREHOUSE_CREDS_TENANT_CODE'),
-            'Authorization' => "Bearer " . $this->token
-        ];
+    // public function warehouseConfiguration($pack_numbers, $production_numbers)
+    // {
+    //     $headers = [
+    //         'Accept' => 'application/json',
+    //         'Accept-Language' => 'application/json',
+    //         'tool_id' => env('WAREHOUSE_CREDS_TOOL_ID'),
+    //         'tenant-code' => env('WAREHOUSE_CREDS_TENANT_CODE'),
+    //         'Authorization' => "Bearer " . $this->token
+    //     ];
 
-        $response = Http::withOptions([
-            'verify' => false,
-        ])->withHeaders($headers)->post(env("WAREHOUSE_CREDS_URL") . '/warehouse-tool/production_orders/pack_status/update', ["pack_numbers" => $pack_numbers, 'production_numbers' => array_unique($production_numbers)]);
+    //     $response = Http::withOptions([
+    //         'verify' => false,
+    //     ])->withHeaders($headers)->post(env("WAREHOUSE_CREDS_URL") . '/warehouse-tool/production_orders/pack_status/update', ["pack_numbers" => $pack_numbers, 'production_numbers' => array_unique($production_numbers)]);
 
-        $response_data = json_decode($response->body(), true);
+    //     $response_data = json_decode($response->body(), true);
 
-        return $response_data;
-    }
+    //     return $response_data;
+    // }
 
     // Printer Configurations 
     public function printerConfiguration($payload)

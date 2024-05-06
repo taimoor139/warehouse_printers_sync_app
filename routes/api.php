@@ -18,5 +18,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
-
-Route::post('print_qrs', [GeneratedQRController::class, 'printQRs']);
+Route::group(['prefix' => 'v1/printing'], function(){
+    Route::post('print_qrs', [GeneratedQRController::class, 'printQRs']);
+    Route::post('print_qrs/stop', [GeneratedQRController::class, 'stopPrintingQRs']);
+    Route::post('print_qrs/resume', [GeneratedQRController::class, 'resumePrintingQRs']);
+});
