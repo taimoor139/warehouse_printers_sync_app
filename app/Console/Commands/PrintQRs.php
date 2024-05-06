@@ -216,6 +216,7 @@ class PrintQRs extends Command
             return $this->printerValues($printer_ip, $printer_port, $value, $printer_count);
         }
     }
+    
 
     function genenrateValueString($pack_number, $batch_number, $price, $mfg_date, $expiry_date)
     {
