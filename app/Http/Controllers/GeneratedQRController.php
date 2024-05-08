@@ -76,7 +76,7 @@ class GeneratedQRController extends Controller
                     $message = "Printing has been paused successfully";
                 } else if ($request->process_type == 2) {
                     $printing_print->update([
-                        'end_date' => Carbon::now()->toTimeString(),
+                        'end_time' => Carbon::now()->toTimeString(),
                         'status' => PrintCommandStatus::ENDED
                     ]);
 
@@ -107,7 +107,7 @@ class GeneratedQRController extends Controller
     public function resumePrintingQRs(CreateRequest $request)
     {
         try {
-            $printing_print = PrintCommandStatus::where('production_number', $request->production_number)->first();
+            $printing_print = PrintCommandStatus::where('production_order_id', $request->production_order_id)->first();
             $message = "";
 
             if ($printing_print) {
