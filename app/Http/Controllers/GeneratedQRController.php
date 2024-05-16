@@ -44,7 +44,7 @@ class GeneratedQRController extends Controller
     {
         try {
             $process_check = PrintCommandStatus::where(['production_order_id' =>  $request->production_order_id, 'status' => PrintCommandStatus::STARTED])->first();
-            if($process_check){
+            if ($process_check) {
                 return response()->json([
                     'success' => true,
                     'data' => $process_check->id,
@@ -90,10 +90,10 @@ class GeneratedQRController extends Controller
                     ]);
 
                     $pack_numbers = GeneratedQR::where('production_number', $printing_print->production_number)->pluck('pack_number')->toArray();
-                    // $response_data = $this->warehouseConfiguration($pack_numbers, [$printing_print->production_number]);
-                    // if ($response_data['success']) {
-                    GeneratedQR::where('production_number', $printing_print->production_number)->delete();
-                    // }
+                    $response_data = $this->warehouseConfiguration($pack_numbers, [$printing_print->production_number]);
+                    if (count($response_data) > 0 && array_key_exists('success', $response_data)) {
+                        GeneratedQR::where('production_number', $printing_print->production_number)->delete();
+                    }
                     $message = "Printing has been stopped successfully";
                 }
             }
