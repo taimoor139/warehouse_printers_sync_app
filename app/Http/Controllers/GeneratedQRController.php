@@ -43,8 +43,17 @@ class GeneratedQRController extends Controller
     public function printQRs(CreateRequest $request)
     {
         try {
+            $process_check = PrintCommandStatus::where(['production_order_id' =>  $request->production_order_id, 'status' => PrintCommandStatus::STARTED])->first();
+            if($process_check){
+                return response()->json([
+                    'success' => true,
+                    'data' => $process_check->id,
+                    'message' => 'Printing has been already started',
+                ]);
+            }
             $process = PrintCommandStatus::create([
                 'production_order_id' => $request->production_order_id,
+                'production_number' => $request->production_order_number,
                 'start_time' => Carbon::now()->toTimeString(),
                 'status' => PrintCommandStatus::STARTED
             ]);
@@ -80,11 +89,11 @@ class GeneratedQRController extends Controller
                         'status' => PrintCommandStatus::ENDED
                     ]);
 
-                    $pack_numbers = GeneratedQR::where('production_number', $printing_print->production_number)->pluck()->toArray();
-                    $response_data = $this->warehouseConfiguration($pack_numbers, [$printing_print->production_number]);
-                    if ($response_data['success']) {
-                        GeneratedQR::where('production_number', $printing_print->production_number)->delete();
-                    }
+                    $pack_numbers = GeneratedQR::where('production_number', $printing_print->production_number)->pluck('pack_number')->toArray();
+                    // $response_data = $this->warehouseConfiguration($pack_numbers, [$printing_print->production_number]);
+                    // if ($response_data['success']) {
+                    GeneratedQR::where('production_number', $printing_print->production_number)->delete();
+                    // }
                     $message = "Printing has been stopped successfully";
                 }
             }

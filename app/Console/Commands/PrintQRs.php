@@ -57,7 +57,9 @@ class PrintQRs extends Command
             if ($process_Status) {
                 $print_qr = GeneratedQR::first();
                 $this->line($printer_count);
+
                 $value = $this->genenrateValueString($print_qr->pack_number, $print_qr->batch_number, $print_qr->price, $print_qr->mfg_date, $print_qr->expiry_date);
+                $this->line($value);
                 $response = $this->printerValues($print_qr->printer_ip, $print_qr->printer_port, $value, $printer_count);
 
                 if ($response['status']) {
@@ -182,6 +184,7 @@ class PrintQRs extends Command
         // Post Request for Python Printing Script
         $response_data = $this->printerConfiguration($printer_req_data);
 
+        dump($response_data);
         if (is_array($response_data) && array_key_exists('additional_info', $response_data)) {
             if ($response_data['additional_info'] > $printer_count) {
                 return ['current_counter' => $response_data['additional_info'], 'status' => true];
@@ -204,6 +207,7 @@ class PrintQRs extends Command
             $printer_req_data['value'] = $value;
             $printer_req_data['add_value'] = "";
 
+            dump($printer_req_data);
             $response_data = $this->printerConfiguration($printer_req_data);
 
             if ($response_data["success_message"]) {

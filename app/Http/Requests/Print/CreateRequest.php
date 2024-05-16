@@ -37,7 +37,8 @@ class CreateRequest extends FormRequest
     {
         return [
             'tenant_id' => 'required',
-            'production_order_id' => 'required'
+            'production_order_id' => 'required',
+            'production_order_number' => 'required'
         ];
     }
 }
