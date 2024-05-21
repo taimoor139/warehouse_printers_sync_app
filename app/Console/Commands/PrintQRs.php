@@ -15,7 +15,9 @@ class PrintQRs extends Command
      *
      * @var string
      */
-    protected $signature = 'print:qrs';
+    protected $signature = 'print:qrs
+                            
+                            {--printer_ip= :Printer IP on which command should run}';
 
     /**
      * The console command description.
@@ -51,23 +53,28 @@ class PrintQRs extends Command
     // Print QRs Aling with status update
     public function printQRs()
     {
+        $printer_ip = $this->option('printer_ip');
         $printer_count = 0;
         while (true) {
             $process_Status = PrintCommandStatus::where('status', PrintCommandStatus::STARTED)->first();
             if ($process_Status) {
-                $print_qr = GeneratedQR::first();
-                $this->line($printer_count);
+                $print_qr = GeneratedQR::where('printer_ip', $printer_ip)->first();
+                if ($print_qr) {
+                    $this->line($printer_count);
 
-                $value = $this->genenrateValueString($print_qr->pack_number, $print_qr->batch_number, $print_qr->price, $print_qr->mfg_date, $print_qr->expiry_date);
-                $this->line($value);
-                $response = $this->printerValues($print_qr->printer_ip, $print_qr->printer_port, $value, $printer_count);
+                    $value = $this->genenrateValueString($print_qr->pack_number, $print_qr->batch_number, $print_qr->price, $print_qr->mfg_date, $print_qr->expiry_date);
+                    $this->line($value);
+                    $response = $this->printerValues($print_qr->printer_ip, $print_qr->printer_port, $value, $printer_count);
 
-                if ($response['status']) {
-                    $printer_count = $response['current_counter'];
-                    $pack_numbers[] = $print_qr->pack_number;
-                    $production_numbers[] = $print_qr->production_number;
+                    if ($response['status']) {
+                        $printer_count = $response['current_counter'];
+                        $pack_numbers[] = $print_qr->pack_number;
+                        $production_numbers[] = $print_qr->production_number;
 
-                    $print_qr->delete();
+                        $print_qr->delete();
+                    }
+                } else {
+                    continue;
                 }
             } else {
                 continue;
@@ -220,7 +227,7 @@ class PrintQRs extends Command
             return $this->printerValues($printer_ip, $printer_port, $value, $printer_count);
         }
     }
-    
+
 
     function genenrateValueString($pack_number, $batch_number, $price, $mfg_date, $expiry_date)
     {
