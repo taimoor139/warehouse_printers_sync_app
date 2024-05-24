@@ -22,4 +22,5 @@ Route::group(['prefix' => 'v1/printing'], function(){
     Route::post('print_qrs', [GeneratedQRController::class, 'printQRs']);
     Route::post('print_qrs/stop', [GeneratedQRController::class, 'stopPrintingQRs']);
     Route::post('print_qrs/resume', [GeneratedQRController::class, 'resumePrintingQRs']);
+    Route::post('print_qrs/replace_printer', [GeneratedQRController::class, 'replacePrinter']);
 });

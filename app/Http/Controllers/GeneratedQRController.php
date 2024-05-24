@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Console\Commands\PrintQRs;
 use App\Http\Requests\Print\CreateRequest;
+use App\Http\Requests\Print\ReplacePrinterRequest;
 use App\Http\Requests\Print\StopRequest;
 use App\Models\GeneratedQR;
 use App\Models\PrintCommandStatus;
@@ -133,6 +134,38 @@ class GeneratedQRController extends Controller
                 'message' => $message,
             ]);
         } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+
+    public function replacePrinter(ReplacePrinterRequest $request)
+    {
+        try{
+            $printing_print = PrintCommandStatus::where(['production_order_id' => $request->production_order_id])->first();
+            $message = "";
+            if ($printing_print->status == PrintCommandStatus::ENDED) {
+                $message = "Printing is already completed!";
+            } else {
+                $update = GeneratedQR::where(['production_number' => $printing_print->production_number, 'printer_ip' => $request->printer_ip, 'deleted_at' => null])->update([
+                    'new_printer_ip' => $request->new_printer_ip,
+                    'is_replaced' => 1
+                ]); 
+                
+                $message =  "Printer replaced successfully!" ;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => null,
+                'message' => $message,
+            ]);
+
+        } catch (\Exception $e){
             return response()->json([
                 'success' => false,
                 'data' => null,

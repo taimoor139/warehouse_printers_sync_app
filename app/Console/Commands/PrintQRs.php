@@ -58,13 +58,17 @@ class PrintQRs extends Command
         while (true) {
             $process_Status = PrintCommandStatus::where('status', PrintCommandStatus::STARTED)->first();
             if ($process_Status) {
-                $print_qr = GeneratedQR::where('printer_ip', $printer_ip)->first();
+                $print_qr = GeneratedQR::where('printer_ip', $printer_ip)->orWhere([
+                    'new_printer_ip' => $printer_ip,
+                    'is_replaced' => 1
+                ])->first();
+
                 if ($print_qr) {
                     $this->line($printer_count);
-
+                    $printer_ip = $print_qr->is_replaced ? $print_qr->new_printer_ip : $print_qr->printer_ip;
                     $value = $this->genenrateValueString($print_qr->pack_number, $print_qr->batch_number, $print_qr->price, $print_qr->mfg_date, $print_qr->expiry_date);
                     $this->line($value);
-                    $response = $this->printerValues($print_qr->printer_ip, $print_qr->printer_port, $value, $printer_count);
+                    $response = $this->printerValues($printer_ip, $print_qr->printer_port, $value, $printer_count);
 
                     if ($response['status']) {
                         $printer_count = $response['current_counter'];
